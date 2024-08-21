@@ -19,6 +19,8 @@ function App() {
   const [zoom, setZoom] = useState(9);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [carPosition, setCarPosition] = useState<[number, number]>([-70.9, 42.35]);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -33,6 +35,28 @@ function App() {
 
       map.current.on('load', () => {
         setIsLoading(false);
+        setMapLoaded(true);
+
+        // Add a new layer for the car
+        map.current?.addLayer({
+          id: 'car',
+          type: 'circle',
+          source: {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'Point',
+                coordinates: carPosition
+              }
+            }
+          },
+          paint: {
+            'circle-radius': 10,
+            'circle-color': '#007cbf'
+          }
+        });
       });
 
       map.current.on('error', (e) => {
@@ -49,6 +73,8 @@ function App() {
         }
       });
 
+      // Add keyboard event listener
+      document.addEventListener('keydown', handleKeyDown);
     } catch (error) {
       setError(`Error initializing map: ${error instanceof Error ? error.message : String(error)}`);
       setIsLoading(false);
@@ -56,8 +82,53 @@ function App() {
 
     return () => {
       map.current?.remove();
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
+
+  // Update car position when it changes
+  useEffect(() => {
+    if (map.current && mapLoaded) {
+      const source = map.current.getSource('car') as mapboxgl.GeoJSONSource;
+      if (source) {
+        source.setData({
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'Point',
+            coordinates: carPosition
+          }
+        });
+      }
+    }
+  }, [carPosition, mapLoaded]);
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    const speed = 0.001; // Adjust this value to change the car's speed
+    let newPosition: [number, number] = [...carPosition];
+
+    switch (e.key) {
+      case 'ArrowUp':
+        newPosition[1] += speed;
+        break;
+      case 'ArrowDown':
+        newPosition[1] -= speed;
+        break;
+      case 'ArrowLeft':
+        newPosition[0] -= speed;
+        break;
+      case 'ArrowRight':
+        newPosition[0] += speed;
+        break;
+      default:
+        return;
+    }
+
+    setCarPosition(newPosition);
+    if (map.current) {
+      map.current.panTo(newPosition);
+    }
+  };
 
   return (
     <div className="App">
@@ -67,6 +138,9 @@ function App() {
       {isLoading && <div className="loading">Loading map...</div>}
       {error && <div className="error">{error}</div>}
       <div ref={mapContainer} className="map-container" aria-label="Mapbox map" />
+      <div className="instructions">
+        Use arrow keys to move the car around the map
+      </div>
     </div>
   );
 }
