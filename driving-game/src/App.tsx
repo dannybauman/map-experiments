@@ -14,9 +14,9 @@ mapboxgl.accessToken = MAPBOX_TOKEN;
 function App() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [lng, setLng] = useState(-70.9);
-  const [lat, setLat] = useState(42.35);
-  const [zoom, setZoom] = useState(9);
+  const [lng, setLng] = useState(-71.0752);
+  const [lat, setLat] = useState(42.3356);
+  const [zoom, setZoom] = useState(19);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [carPosition, setCarPosition] = useState<[number, number]>([0, 0]);
@@ -24,6 +24,89 @@ function App() {
   const [carSpeed, setCarSpeed] = useState<[number, number]>([0, 0]);
   const [obstacles, setObstacles] = useState<[number, number][]>([]);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [keysPressed, setKeysPressed] = useState<Set<string>>(new Set());
+  const [carAcceleration, setCarAcceleration] = useState<[number, number]>([0, 0]);
+  const maxSpeed = 0.00001; // Reduced by 10x from 0.0001
+  const acceleration = 0.0000025; // Reduced by 2x from 0.000005
+  const deceleration = 0.05; // Kept the same
+  const rotationSpeed = 2;
+  const [velocity, setVelocity] = useState<[number, number]>([0, 0]);
+
+  const updateCarPosition = useCallback(() => {
+    if (map.current) {
+      const newLng = lng - velocity[0];
+      const newLat = lat - velocity[1];
+
+      map.current.panTo([newLng, newLat], { animate: false });
+      setLng(newLng);
+      setLat(newLat);
+
+      // Update car rotation based on velocity
+      if (velocity[0] !== 0 || velocity[1] !== 0) {
+        const angle = Math.atan2(velocity[1], velocity[0]) * (180 / Math.PI); // Removed negation
+        setCarRotation(angle);
+      }
+
+      // Check for collisions
+      obstacles.forEach(obstacle => {
+        const distance = Math.sqrt(
+          Math.pow(newLng - obstacle[0], 2) + Math.pow(newLat - obstacle[1], 2)
+        );
+        if (distance < 0.0001) {
+          setVelocity([0, 0]);
+        }
+      });
+    }
+  }, [lng, lat, velocity, obstacles]);
+
+  const updateVelocity = useCallback(() => {
+    let newVelocity: [number, number] = [...velocity];
+    let accelerationVector: [number, number] = [0, 0];
+
+    if (keysPressed.has('ArrowUp')) accelerationVector[1] -= 1;
+    if (keysPressed.has('ArrowDown')) accelerationVector[1] += 1;
+    if (keysPressed.has('ArrowLeft')) accelerationVector[0] += 1;
+    if (keysPressed.has('ArrowRight')) accelerationVector[0] -= 1;
+
+    // Normalize acceleration vector
+    const magnitude = Math.sqrt(accelerationVector[0]**2 + accelerationVector[1]**2);
+    if (magnitude !== 0) {
+      accelerationVector[0] /= magnitude;
+      accelerationVector[1] /= magnitude;
+    }
+
+    // Apply acceleration only if keys are pressed
+    if (keysPressed.size > 0) {
+      newVelocity[0] += accelerationVector[0] * acceleration;
+      newVelocity[1] += accelerationVector[1] * acceleration;
+    } else {
+      // Apply deceleration when no keys are pressed
+      newVelocity[0] *= (1 - deceleration);
+      newVelocity[1] *= (1 - deceleration);
+    }
+
+    // Stop the car if the speed is very low
+    const speed = Math.sqrt(newVelocity[0]**2 + newVelocity[1]**2);
+    if (speed < 0.0000001) { // Adjusted threshold to match new speed scale
+      newVelocity = [0, 0];
+    }
+
+    // Limit speed
+    if (speed > maxSpeed) {
+      newVelocity[0] = (newVelocity[0] / speed) * maxSpeed;
+      newVelocity[1] = (newVelocity[1] / speed) * maxSpeed;
+    }
+
+    setVelocity(newVelocity);
+  }, [keysPressed, velocity, acceleration, deceleration, maxSpeed]);
+
+  useEffect(() => {
+    const gameLoop = setInterval(() => {
+      updateVelocity();
+      updateCarPosition();
+    }, 16); // ~60 fps
+    return () => clearInterval(gameLoop);
+  }, [updateVelocity, updateCarPosition]);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -40,60 +123,31 @@ function App() {
         setIsLoading(false);
         setMapLoaded(true);
 
-        // Remove previous car layer if it exists
-        if (map.current?.getLayer('car')) {
-          map.current?.removeLayer('car');
-          map.current?.removeSource('car');
-        }
-
-        // Add new car layer
-        map.current?.addLayer({
-          id: 'car',
-          type: 'symbol',
-          source: {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              properties: {},
-              geometry: {
-                type: 'Point',
-                coordinates: [lng, lat]
-              }
-            }
-          },
-          layout: {
-            'icon-image': 'car',
-            'icon-size': 0.1,
-            'icon-rotate': carRotation,
-            'icon-rotation-alignment': 'map',
-            'icon-allow-overlap': true,
-            'icon-ignore-placement': true
-          }
-        });
-
         // Add obstacles
-        map.current?.addLayer({
-          id: 'obstacles',
-          type: 'circle',
-          source: {
-            type: 'geojson',
-            data: {
-              type: 'FeatureCollection',
-              features: obstacles.map(obstacle => ({
-                type: 'Feature',
-                properties: {},
-                geometry: {
-                  type: 'Point',
-                  coordinates: obstacle
-                }
-              }))
+        if (map.current) {
+          map.current.addLayer({
+            id: 'obstacles',
+            type: 'circle',
+            source: {
+              type: 'geojson',
+              data: {
+                type: 'FeatureCollection',
+                features: obstacles.map(obstacle => ({
+                  type: 'Feature',
+                  properties: {},
+                  geometry: {
+                    type: 'Point',
+                    coordinates: obstacle
+                  }
+                }))
+              }
+            },
+            paint: {
+              'circle-radius': 10,
+              'circle-color': '#ff0000'
             }
-          },
-          paint: {
-            'circle-radius': 10,
-            'circle-color': '#ff0000'
-          }
-        });
+          });
+        }
       });
 
       map.current.on('error', (e) => {
@@ -125,64 +179,19 @@ function App() {
     };
   }, []);
 
-  const updateCarPosition = useCallback(() => {
-    if (map.current) {
-      const newLng = lng + carSpeed[0];
-      const newLat = lat + carSpeed[1];
-      setLng(newLng);
-      setLat(newLat);
-      map.current.panTo([newLng, newLat]);
-
-      // Update car rotation
-      if (carSpeed[0] !== 0 || carSpeed[1] !== 0) {
-        const angle = Math.atan2(carSpeed[1], carSpeed[0]) * (180 / Math.PI);
-        setCarRotation(angle);
-      }
-
-      // Check for collisions
-      obstacles.forEach(obstacle => {
-        const distance = Math.sqrt(
-          Math.pow(newLng - obstacle[0], 2) + Math.pow(newLat - obstacle[1], 2)
-        );
-        if (distance < 0.0002) { // Adjust this value for collision sensitivity
-          setCarSpeed([0, 0]);
-        }
-      });
-    }
-  }, [lng, lat, carSpeed, obstacles]);
-
-  useEffect(() => {
-    const gameLoop = setInterval(updateCarPosition, 50); // 20 fps
-    return () => clearInterval(gameLoop);
-  }, [updateCarPosition]);
-
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    const acceleration = 0.00001;
-    let newSpeed: [number, number] = [...carSpeed];
-
-    switch (e.key) {
-      case 'ArrowUp':
-        newSpeed[1] += acceleration;
-        break;
-      case 'ArrowDown':
-        newSpeed[1] -= acceleration;
-        break;
-      case 'ArrowLeft':
-        newSpeed[0] -= acceleration;
-        break;
-      case 'ArrowRight':
-        newSpeed[0] += acceleration;
-        break;
-      default:
-        return;
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      setKeysPressed(prev => new Set(prev).add(e.key));
     }
-
-    setCarSpeed(newSpeed);
-  }, [carSpeed]);
+  }, []);
 
   const handleKeyUp = useCallback((e: KeyboardEvent) => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      setCarSpeed([0, 0]);
+      setKeysPressed(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(e.key);
+        return newSet;
+      });
     }
   }, []);
 
@@ -196,7 +205,7 @@ function App() {
       ]);
     }
     setObstacles(newObstacles);
-  }, []);
+  }, [lng, lat]);
 
   return (
     <div className="App">
@@ -205,7 +214,19 @@ function App() {
       </div>
       {isLoading && <div className="loading">Loading map...</div>}
       {error && <div className="error">{error}</div>}
-      <div ref={mapContainer} className="map-container" aria-label="Mapbox map" />
+      <div
+        ref={mapContainer}
+        className="map-container"
+        aria-label="Mapbox map"
+      />
+      <div
+        className="car-overlay"
+        style={{
+          transform: `translate(-50%, -50%) rotate(${carRotation}deg)`
+        }}
+      >
+        <img src="/images/car.png" alt="Car" className="car-image" />
+      </div>
       <div className="instructions">
         Use arrow keys to move the car around the map
       </div>
