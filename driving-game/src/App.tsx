@@ -21,15 +21,11 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [carPosition, setCarPosition] = useState<[number, number]>([0, 0]);
   const [carRotation, setCarRotation] = useState(0);
-  const [carSpeed, setCarSpeed] = useState<[number, number]>([0, 0]);
   const [obstacles, setObstacles] = useState<[number, number][]>([]);
-  const [mapLoaded, setMapLoaded] = useState(false);
   const [keysPressed, setKeysPressed] = useState<Set<string>>(new Set());
-  const [carAcceleration, setCarAcceleration] = useState<[number, number]>([0, 0]);
   const maxSpeed = 0.00001; // Reduced by 10x from 0.0001
   const acceleration = 0.0000025; // Reduced by 2x from 0.000005
   const deceleration = 0.05; // Kept the same
-  const rotationSpeed = 2;
   const [velocity, setVelocity] = useState<[number, number]>([0, 0]);
 
   const updateCarPosition = useCallback(() => {
@@ -121,7 +117,6 @@ function App() {
 
       map.current.on('load', () => {
         setIsLoading(false);
-        setMapLoaded(true);
 
         // Add obstacles
         if (map.current) {
