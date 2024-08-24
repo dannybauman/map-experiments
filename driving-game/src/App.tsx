@@ -31,6 +31,7 @@ function App() {
   const geocoderContainerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [carImage, setCarImage] = useState('/images/car.png');
 
   const maxSpeed = 0.00001;
   const acceleration = 0.0000025;
@@ -129,6 +130,10 @@ function App() {
       }
       setIsMusicPlaying(!isMusicPlaying);
     }
+  };
+
+  const handleCarImageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setCarImage(event.target.value);
   };
 
   useEffect(() => {
@@ -255,7 +260,7 @@ function App() {
           top: `50%`,
         }}
       >
-        <img src="/images/car.png" alt="Car" className="car-image" style={{ width: '60px', height: '60px' }} />
+        <img src={carImage} alt="Car" className="car-image" style={{ width: '60px', height: '60px' }} />
       </div>
       <div className="instructions">
         Use arrow keys to move the car around the map
@@ -266,6 +271,12 @@ function App() {
       <button onClick={toggleMusic} className="music-toggle">
         {isMusicPlaying ? 'Pause Music' : 'Play Music'}
       </button>
+      <div className="car-selector">
+        <select onChange={handleCarImageChange} value={carImage}>
+          <option value="/images/car.png">Car 1</option>
+          <option value="/images/car2.png">Car 2</option>
+        </select>
+      </div>
     </div>
   );
 }

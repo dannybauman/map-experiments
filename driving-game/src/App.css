@@ -158,3 +158,23 @@
 .music-toggle:hover {
   background-color: #45a049;
 }
+
+.car-selector {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  z-index: 10;
+}
+
+.car-selector select {
+  padding: 5px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  background-color: white;
+  cursor: pointer;
+}
+
+.car-selector select:hover {
+  background-color: #f0f0f0;
+}
