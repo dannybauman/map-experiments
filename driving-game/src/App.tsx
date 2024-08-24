@@ -38,7 +38,8 @@ function App() {
       setLat(newLat);
 
       if (velocity[0] !== 0 || velocity[1] !== 0) {
-        const angle = Math.atan2(velocity[1], velocity[0]) * (180 / Math.PI);
+        // Fix: Flip the x-component of velocity to correct horizontal rotation
+        const angle = Math.atan2(velocity[1], -velocity[0]) * (180 / Math.PI);
         setCarRotation(angle);
       }
 
