@@ -109,7 +109,7 @@ function App() {
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v11',
+      style: 'mapbox://styles/mapbox/satellite-v9', // Change this line
       center: [lng, lat],
       zoom: zoom,
       scrollZoom: false, // Disable scroll zoom
