@@ -21,7 +21,9 @@
     "jsx": "react-jsx",
     "types": [
       "jest",
-      "@testing-library/jest-dom"
+      "@testing-library/jest-dom",
+      "@types/mapbox__mapbox-gl-geocoder",
+      "@types/mapbox-gl"
     ]
   },
   "include": [

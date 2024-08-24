@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import './App.css';
+import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
+import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 
 const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN;
 
@@ -26,19 +28,16 @@ function App() {
   const [obstacles, setObstacles] = useState<[number, number][]>([]);
   const [keysPressed, setKeysPressed] = useState<Set<string>>(new Set());
   const [velocity, setVelocity] = useState<[number, number]>([0, 0]);
+  const geocoderContainerRef = useRef<HTMLDivElement>(null);
 
   const maxSpeed = 0.00001;
   const acceleration = 0.0000025;
   const deceleration = 0.05;
 
-  // Add this new function to center the map
+  // Simplify the centerMap function
   const centerMap = useCallback((latitude: number, longitude: number) => {
     if (map.current) {
-      map.current.flyTo({
-        center: [longitude, latitude],
-        zoom: CONSTANT_ZOOM,
-        essential: true
-      });
+      map.current.setCenter([longitude, latitude]);
       setLng(longitude);
       setLat(latitude);
     }
@@ -49,9 +48,7 @@ function App() {
       const newLng = lng - velocity[0];
       const newLat = lat - velocity[1];
 
-      // Update the map's center to keep the car centered
       map.current.setCenter([newLng, newLat]);
-
       setLng(newLng);
       setLat(newLat);
 
@@ -189,6 +186,23 @@ function App() {
       }
     });
 
+    // Add the geocoder control
+    const geocoder = new MapboxGeocoder({
+      accessToken: mapboxgl.accessToken,
+      mapboxgl: mapboxgl as any, // Cast to any to avoid type mismatch
+      marker: false,
+      placeholder: 'Search for a location',
+    });
+
+    if (geocoderContainerRef.current) {
+      geocoderContainerRef.current.appendChild(geocoder.onAdd(map.current as any)); // Cast to any
+    }
+
+    geocoder.on('result', (e) => {
+      const [lng, lat] = e.result.center;
+      centerMap(lat, lng);
+    });
+
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
 
@@ -196,6 +210,7 @@ function App() {
       map.current?.remove();
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
+      geocoder.onRemove();
     };
   }, []);
 
@@ -233,6 +248,7 @@ function App() {
         Use arrow keys to move the car around the map
       </div>
       <button onClick={() => centerMap(47.6062, -122.3321)}>Center on Seattle</button>
+      <div ref={geocoderContainerRef} className="geocoder-container" />
     </div>
   );
 }

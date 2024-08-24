@@ -20,9 +20,6 @@ importers:
       '@types/jest':
         specifier: ^27.5.2
         version: 27.5.2
-      '@types/mapbox-gl':
-        specifier: ^3.4.0
-        version: 3.4.0
       '@types/node':
         specifier: ^16.18.105
         version: 16.18.105
@@ -54,6 +51,9 @@ importers:
       '@testing-library/jest-dom':
         specifier: ^5.17.0
         version: 5.17.0
+      '@types/mapbox-gl':
+        specifier: ^3.4.0
+        version: 3.4.0
       '@types/mapbox__mapbox-gl-geocoder':
         specifier: ^5.0.0
         version: 5.0.0
