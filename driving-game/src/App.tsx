@@ -111,8 +111,12 @@ function App() {
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v11',
       center: [lng, lat],
-      zoom: zoom
+      zoom: zoom,
+      scrollZoom: false, // Disable scroll zoom
     });
+
+    // Disable double-click zoom
+    map.current.doubleClickZoom.disable();
 
     map.current.on('load', () => {
       setIsLoading(false);
@@ -187,7 +191,7 @@ function App() {
   return (
     <div className="App">
       <div className="sidebar" aria-live="polite">
-        Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}
+        Longitude: {lng.toFixed(4)} | Latitude: {lat.toFixed(4)}
       </div>
       {isLoading && <div className="loading">Loading map...</div>}
       {error && <div className="error">{error}</div>}
