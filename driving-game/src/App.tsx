@@ -29,6 +29,8 @@ function App() {
   const [keysPressed, setKeysPressed] = useState<Set<string>>(new Set());
   const [velocity, setVelocity] = useState<[number, number]>([0, 0]);
   const geocoderContainerRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
 
   const maxSpeed = 0.00001;
   const acceleration = 0.0000025;
@@ -117,6 +119,17 @@ function App() {
       });
     }
   }, []);
+
+  const toggleMusic = () => {
+    if (audioRef.current) {
+      if (isMusicPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch(console.error);
+      }
+      setIsMusicPlaying(!isMusicPlaying);
+    }
+  };
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -249,6 +262,10 @@ function App() {
       </div>
       <button onClick={() => centerMap(47.6062, -122.3321)}>Center on Seattle</button>
       <div ref={geocoderContainerRef} className="geocoder-container" />
+      <audio ref={audioRef} src="/audio/global-pursuit.mp3" loop />
+      <button onClick={toggleMusic} className="music-toggle">
+        {isMusicPlaying ? 'Pause Music' : 'Play Music'}
+      </button>
     </div>
   );
 }

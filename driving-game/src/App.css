@@ -139,3 +139,21 @@
     min-width: 300px;
   }
 }
+
+.music-toggle {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  z-index: 10;
+}
+
+.music-toggle:hover {
+  background-color: #45a049;
+}
