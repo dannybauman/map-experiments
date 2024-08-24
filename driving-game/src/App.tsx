@@ -255,7 +255,7 @@ function App() {
           top: `50%`,
         }}
       >
-        <img src="/images/car.png" alt="Car" className="car-image" />
+        <img src="/images/car.png" alt="Car" className="car-image" style={{ width: '60px', height: '60px' }} />
       </div>
       <div className="instructions">
         Use arrow keys to move the car around the map
