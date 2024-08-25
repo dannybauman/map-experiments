@@ -136,7 +136,7 @@ function App() {
     setCarImage(event.target.value);
   };
 
-  useEffect(() => {
+  const initializeMap = useCallback(() => {
     if (!mapContainer.current || map.current) return;
 
     map.current = new mapboxgl.Map({
@@ -221,16 +221,22 @@ function App() {
       centerMap(lat, lng);
     });
 
+    return () => {
+      map.current?.remove();
+      geocoder.onRemove();
+    };
+  }, [lng, lat, centerMap]);
+
+  useEffect(() => {
+    initializeMap();
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
 
     return () => {
-      map.current?.remove();
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
-      geocoder.onRemove();
     };
-  }, []);
+  }, [initializeMap, handleKeyDown, handleKeyUp]);
 
   useEffect(() => {
     const gameLoop = setInterval(() => {
